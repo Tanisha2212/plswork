@@ -2,12 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-// ignore: depend_on_referenced_packages
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
 
 class Inventory extends StatefulWidget {
   @override
   _InventoryState createState() => _InventoryState();
+
+  // Add a static method to get the inventory items
+  static List<Map<String, String>> getInventoryItems() {
+    return _InventoryState.inventoryList;
+  }
 }
 
 class _InventoryState extends State<Inventory> {
@@ -19,7 +23,7 @@ class _InventoryState extends State<Inventory> {
   final TextEditingController _manualExpiryController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
 
-  List<Map<String, String>> _inventoryList = [];
+  static List<Map<String, String>> inventoryList = [];
 
   final ImagePicker _picker = ImagePicker();
 
@@ -54,7 +58,8 @@ class _InventoryState extends State<Inventory> {
     List<DateTime> dates = [];
 
     // Extended regex pattern to recognize multiple date formats
-    RegExp dateRegEx = RegExp(r'(\d{2}/\d{2}/\d{4}|\d{2}-\d{2}-\d{4}|\d{4}-\d{2}-\d{2}|\d{2}/\d{4}|\d{4}/\d{2}|\d{2}-\d{4}|\d{4}-\d{2}|[A-Za-z]+ \d{4})');
+    RegExp dateRegEx = RegExp(
+        r'(\d{2}/\d{2}/\d{4}|\d{2}-\d{2}-\d{4}|\d{4}-\d{2}-\d{2}|\d{2}/\d{4}|\d{4}/\d{2}|\d{2}-\d{4}|\d{4}-\d{2}|[A-Za-z]+ \d{4})');
 
     for (TextBlock block in recognizedText.blocks) {
       for (TextLine line in block.lines) {
@@ -74,11 +79,10 @@ class _InventoryState extends State<Inventory> {
       dates.sort((a, b) => a.compareTo(b));
       return DateFormat('dd/MM/yyyy').format(dates.last);
     }
-    
+
     return null;
   }
 
-  // Parse multiple date formats
   DateTime? _parseDate(String dateStr) {
     List<String> formats = [
       'dd/MM/yyyy',
@@ -87,7 +91,7 @@ class _InventoryState extends State<Inventory> {
       'dd-MM-yyyy',
       'MM-yyyy',
       'yyyy-MM',
-      'MMMM yyyy' // Format for month name (e.g., January 2023)
+      'MMMM yyyy'
     ];
 
     for (String format in formats) {
@@ -101,7 +105,6 @@ class _InventoryState extends State<Inventory> {
     return null;
   }
 
-  // Prompt the user to enter the item name after expiry date detection
   Future<void> _promptItemName() async {
     await showDialog(
       context: context,
@@ -130,7 +133,7 @@ class _InventoryState extends State<Inventory> {
 
   void addManualItem() {
     setState(() {
-      _inventoryList.add({
+      inventoryList.add({
         "name": _itemNameController.text,
         "expiryDate": _manualExpiryController.text,
         "quantity": _quantityController.text,
@@ -144,7 +147,7 @@ class _InventoryState extends State<Inventory> {
   void addScannedItem() {
     setState(() {
       if (_expiryDate != null && _itemNameController.text.isNotEmpty) {
-        _inventoryList.add({
+        inventoryList.add({
           "name": _itemNameController.text,
           "expiryDate": _expiryDate!,
           "quantity": _quantityController.text,
@@ -154,6 +157,12 @@ class _InventoryState extends State<Inventory> {
         _quantityController.clear();
         _image = null;
       }
+    });
+  }
+
+  void deleteItem(int index) {
+    setState(() {
+      inventoryList.removeAt(index);
     });
   }
 
@@ -170,11 +179,13 @@ class _InventoryState extends State<Inventory> {
           children: [
             Text(
               'Add New Inventory Item',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal),
             ),
             SizedBox(height: 20),
 
-            // Manual Entry Form
             TextField(
               controller: _itemNameController,
               decoration: InputDecoration(
@@ -197,96 +208,35 @@ class _InventoryState extends State<Inventory> {
                 labelText: 'Quantity',
                 border: OutlineInputBorder(),
               ),
-              keyboardType: TextInputType.number,
             ),
             SizedBox(height: 10),
             ElevatedButton(
               onPressed: addManualItem,
-              child: Text('Add Item Manually'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor:Colors.greenAccent,
-              ),
+              child: Text('Add Item'),
             ),
+
             SizedBox(height: 20),
-
-            // Image Section
-            if (_image != null)
-              Column(
-                children: [
-                  Image.file(
-                    _image!,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                  SizedBox(height: 10),
-                ],
-              ),
-            if (_isLoading) CircularProgressIndicator(),
-            if (_expiryDate != null && !_isLoading)
-              Column(
-                children: [
-                  Text(
-                    'Detected Expiry Date: $_expiryDate',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal),
-                  ),
-                  SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: addScannedItem,
-                    child: Text('Add Scanned Item'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.greenAccent,
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                ],
-              ),
-
-            // Scan Button
             ElevatedButton(
               onPressed: pickImage,
-              child: Text('Scan Product for Expiry Date'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
-              ),
-            ),
-
-            SizedBox(height: 20),
-
-            // Inventory List in Table Form
-            Text(
-              'Inventory List',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal),
+              child: Text('Scan Expiry Date from Image'),
             ),
             SizedBox(height: 10),
 
+            // Display the inventory list
             Expanded(
-              child: SingleChildScrollView(
-                child: _inventoryList.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No items in inventory.',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      )
-                    : DataTable(
-                        columns: [
-                          DataColumn(label: Text('Item Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Expiry Date', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Quantity', style: TextStyle(fontWeight: FontWeight.bold))),
-                        ],
-                        rows: _inventoryList
-                            .map(
-                              (item) => DataRow(
-                                cells: [
-                                  DataCell(Text(item['name'] ?? '')),
-                                  DataCell(Text(item['expiryDate'] ?? '')),
-                                  DataCell(Text(item['quantity'] ?? '')),
-                                ],
-                              ),
-                            )
-                            .toList(),
-                      ),
+              child: ListView.builder(
+                itemCount: inventoryList.length,
+                itemBuilder: (context, index) {
+                  final item = inventoryList[index];
+                  return ListTile(
+                    title: Text('${item['name']} (Qty: ${item['quantity']})'),
+                    subtitle: Text('Expiry Date: ${item['expiryDate']}'),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () => deleteItem(index),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -294,10 +244,4 @@ class _InventoryState extends State<Inventory> {
       ),
     );
   }
-}
-
-void main() {
-  runApp(MaterialApp(
-    home: Inventory(),
-  ));
 }

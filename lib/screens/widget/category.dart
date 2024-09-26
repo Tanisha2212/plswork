@@ -3,7 +3,7 @@ import 'package:plswork/screens/functions/inventory.dart';
 
 import 'package:plswork/screens/functions/nearby_shop.dart';
 import 'package:plswork/screens/functions/recipe.dart';
-import 'package:plswork/screens/functions/shopping.dart';
+import 'package:plswork/screens/functions/doubts_ai.dart';
 
 class Category extends StatelessWidget {
   const Category({super.key});
@@ -32,14 +32,10 @@ class Category extends StatelessWidget {
             {
               'name': 'Recipe Suggestion',
               'icon': Icons.receipt,
-              'page': Recipe()
+              'page': RecipeSuggestionsPage()
             },
             {'name': 'Shop Nearby', 'icon': Icons.store, 'page': NearbyShop()},
-            {
-              'name': 'Automated Generative List',
-              'icon': Icons.list_alt,
-              'page': Automatedlist()
-            },
+            {'name': 'Ask AI', 'icon': Icons.list_alt, 'page': DoubtsAi},
           ];
 
           return GestureDetector(

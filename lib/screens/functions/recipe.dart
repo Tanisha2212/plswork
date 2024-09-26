@@ -1,136 +1,104 @@
 import 'package:flutter/material.dart';
-import 'package:plswork/screens/functions/recipe_service.dart';
-import 'recipe_service.dart'; // Import the RecipeService
+import 'recipe_service.dart'; // Import the recipe service to fetch recipes
+import 'inventory.dart'; // Import the inventory to access inventory items
 
-class Recipe extends StatefulWidget {
-  const Recipe({super.key});
-
+class RecipeSuggestionsPage extends StatefulWidget {
   @override
-  _RecipeState createState() => _RecipeState();
+  _RecipeSuggestionsPageState createState() => _RecipeSuggestionsPageState();
 }
 
-class _RecipeState extends State<Recipe> {
-  final RecipeService _recipeService = RecipeService();
-  List<dynamic> _recipes = [];
-  String _searchQuery = '';
+class _RecipeSuggestionsPageState extends State<RecipeSuggestionsPage> {
+  List<String> _recipes = [];
+  final TextEditingController _searchController = TextEditingController();
 
-  // Inventory list of ingredients
-  List<String> inventory = ['tomato', 'cheese', 'basil'];
-  // Track selected ingredients
-  List<String> selectedIngredients = [];
+  Future<void> _fetchRecipesBasedOnInventory() async {
+    List<Map<String, String>> inventoryList = Inventory.getInventoryItems();
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchSuggestedRecipes(); // Fetch suggested recipes on init
-  }
+    // Extract item names from inventoryList
+    List<String> inventoryItems = inventoryList.map((item) => item['name']!).toList();
 
-  Future<void> _fetchSuggestedRecipes() async {
-    final recipes = await _recipeService.suggestRecipes(selectedIngredients);
-    setState(() {
-      _recipes = recipes;
-    });
-  }
-
-  void _searchRecipes() async {
-    if (_searchQuery.isNotEmpty) {
-      final recipes = await _recipeService.searchRecipes(_searchQuery);
+    if (inventoryItems.isNotEmpty) {
+      final _recipeService = RecipeService(); // Instantiate the RecipeService
+      final recipes = await _recipeService.suggestRecipes(inventoryItems);
       setState(() {
-        _recipes = recipes;
-      });
-    }
-  }
-
-  // Fetch recipes based on selected ingredients
-  Future<void> _fetchRecipesBySelectedIngredients() async {
-    if (selectedIngredients.isNotEmpty) {
-      final recipes = await _recipeService.suggestRecipes(selectedIngredients);
-      setState(() {
-        _recipes = recipes;
+        _recipes = recipes; // Update the state with the fetched recipes
       });
     } else {
-      // Optional: Clear recipes if no ingredients are selected
+      // Show message if inventory is empty
+      _showEmptyInventoryDialog();
+    }
+  }
+
+  Future<void> _searchRecipes() async {
+    String query = _searchController.text.trim();
+    if (query.isNotEmpty) {
+      final _recipeService = RecipeService(); // Instantiate the RecipeService
+      final recipes = await _recipeService.searchRecipes(query);
       setState(() {
-        _recipes = [];
+        _recipes = recipes; // Update the state with the fetched recipes
       });
     }
+  }
+
+  void _showEmptyInventoryDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('No ingredients in inventory'),
+          content: Text('Please add ingredients to the inventory.'),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recipe Suggestions'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _searchRecipes,
+        title: Text('Recipe Suggestions'),
+      ),
+      body: Column(
+        children: [
+          // Search bar for querying recipes
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Search Recipes',
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.search),
+                  onPressed: _searchRecipes, // Call searchRecipes when button is pressed
+                ),
+              ),
+            ),
+          ),
+          // Button to suggest recipes based on inventory
+          ElevatedButton(
+            onPressed: _fetchRecipesBasedOnInventory,
+            child: Text('Suggest Recipes Based on Inventory'),
+          ),
+          // List view to display fetched recipes
+          Expanded(
+            child: ListView.builder(
+              itemCount: _recipes.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(_recipes[index]),
+                );
+              },
+            ),
           ),
         ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-              decoration: const InputDecoration(
-                hintText: 'Search for a recipe',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Inventory List with Checkboxes
-            Column(
-              children: inventory.map((ingredient) {
-                return CheckboxListTile(
-                  title: Text(ingredient),
-                  value: selectedIngredients.contains(ingredient),
-                  onChanged: (bool? value) {
-                    setState(() {
-                      if (value == true) {
-                        selectedIngredients.add(ingredient);
-                      } else {
-                        selectedIngredients.remove(ingredient);
-                      }
-                    });
-                    _fetchRecipesBySelectedIngredients(); // Fetch recipes on change
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _recipes.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: ListTile(
-                      title: Text(_recipes[index]['recipe']['label']),
-                      subtitle: Text(
-                        _recipes[index]['recipe']['ingredientLines'].join(', '),
-                      ),
-                      trailing: Image.network(
-                        _recipes[index]['recipe']['image'],
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                      ),
-                      onTap: () {
-                        // Handle recipe tap if needed
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

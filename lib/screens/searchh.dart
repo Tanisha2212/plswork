@@ -48,7 +48,7 @@ class Searchh extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CookingScreen(recipeName: query),  // Pass recipe name to CookingScreen
+                    builder: (context) => CookingPage(recipeName: query, query: '',),  // Pass recipe name to CookingScreen
                   ),
                 );
               }

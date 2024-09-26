@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class Automatedlist extends StatelessWidget {
-  const Automatedlist({super.key});
+class DoubtsAi extends StatelessWidget {
+  const DoubtsAi({super.key});
 
   @override
   Widget build(BuildContext context) {

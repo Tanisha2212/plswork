@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:plswork/screens/cooking.dart';
+import 'package:plswork/screens/functions/doubts_ai.dart';
 import 'package:plswork/screens/searchh.dart';
 import 'package:plswork/screens/widget/category.dart';
 import 'package:plswork/screens/widget/header.dart';
@@ -38,9 +39,7 @@ class Homepage extends StatelessWidget {
             const Search(),
             const Category(),
             const Searchh(),
-            const CookingScreen(recipeName: '',),
-          
-
+            const DoubtsAi(),
           ])
         ])));
   }
