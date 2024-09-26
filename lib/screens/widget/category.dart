@@ -32,7 +32,7 @@ class Category extends StatelessWidget {
             {
               'name': 'Recipe Suggestion',
               'icon': Icons.receipt,
-              'page': RecipeSuggestionsPage()
+              'page': Recipe()
             },
             {'name': 'Shop Nearby', 'icon': Icons.store, 'page': NearbyShop()},
             {'name': 'Ask AI', 'icon': Icons.list_alt, 'page': DoubtsAi},

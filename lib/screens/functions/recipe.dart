@@ -1,104 +1,97 @@
 import 'package:flutter/material.dart';
-import 'recipe_service.dart'; // Import the recipe service to fetch recipes
-import 'inventory.dart'; // Import the inventory to access inventory items
+import 'package:plswork/screens/functions/recipe_service.dart'; // Import the RecipeService
 
-class RecipeSuggestionsPage extends StatefulWidget {
+class Recipe extends StatefulWidget {
+  const Recipe({super.key});
+
   @override
-  _RecipeSuggestionsPageState createState() => _RecipeSuggestionsPageState();
+  _RecipeState createState() => _RecipeState();
 }
 
-class _RecipeSuggestionsPageState extends State<RecipeSuggestionsPage> {
-  List<String> _recipes = [];
-  final TextEditingController _searchController = TextEditingController();
+class _RecipeState extends State<Recipe> {
+  final RecipeService _recipeService = RecipeService();
+  List<dynamic> _recipes = [];
+  String _searchQuery = '';
 
-  Future<void> _fetchRecipesBasedOnInventory() async {
-    List<Map<String, String>> inventoryList = Inventory.getInventoryItems();
-
-    // Extract item names from inventoryList
-    List<String> inventoryItems = inventoryList.map((item) => item['name']!).toList();
-
-    if (inventoryItems.isNotEmpty) {
-      final _recipeService = RecipeService(); // Instantiate the RecipeService
-      final recipes = await _recipeService.suggestRecipes(inventoryItems);
-      setState(() {
-        _recipes = recipes; // Update the state with the fetched recipes
-      });
-    } else {
-      // Show message if inventory is empty
-      _showEmptyInventoryDialog();
-    }
+  @override
+  void initState() {
+    super.initState();
+    _fetchSuggestedRecipes(); // Fetch suggested recipes on init
   }
 
-  Future<void> _searchRecipes() async {
-    String query = _searchController.text.trim();
-    if (query.isNotEmpty) {
-      final _recipeService = RecipeService(); // Instantiate the RecipeService
-      final recipes = await _recipeService.searchRecipes(query);
-      setState(() {
-        _recipes = recipes; // Update the state with the fetched recipes
-      });
-    }
+  Future<void> _fetchSuggestedRecipes() async {
+    final recipes = await _recipeService.suggestRecipes([]);
+    setState(() {
+      _recipes = recipes;
+    });
   }
 
-  void _showEmptyInventoryDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('No ingredients in inventory'),
-          content: Text('Please add ingredients to the inventory.'),
-          actions: [
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+  void _searchRecipes() async {
+    if (_searchQuery.isNotEmpty) {
+      final recipes = await _recipeService.searchRecipes(_searchQuery);
+      setState(() {
+        _recipes = recipes;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Recipe Suggestions'),
+        title: const Text('Recipe Suggestions'),
       ),
-      body: Column(
-        children: [
-          // Search bar for querying recipes
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Search bar with search icon inside
+            TextField(
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+              onSubmitted: (value) {
+                _searchRecipes(); // Perform search when user hits "enter"
+              },
               decoration: InputDecoration(
-                labelText: 'Search Recipes',
+                hintText: 'Search for a recipe',
+                border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: _searchRecipes, // Call searchRecipes when button is pressed
+                  icon: const Icon(Icons.search),
+                  onPressed: _searchRecipes,
                 ),
               ),
             ),
-          ),
-          // Button to suggest recipes based on inventory
-          ElevatedButton(
-            onPressed: _fetchRecipesBasedOnInventory,
-            child: Text('Suggest Recipes Based on Inventory'),
-          ),
-          // List view to display fetched recipes
-          Expanded(
-            child: ListView.builder(
-              itemCount: _recipes.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_recipes[index]),
-                );
-              },
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _recipes.length,
+                itemBuilder: (context, index) {
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: ListTile(
+                      title: Text(_recipes[index]['recipe']['label']),
+                      subtitle: Text(
+                        _recipes[index]['recipe']['ingredientLines'].join(', '),
+                      ),
+                      trailing: Image.network(
+                        _recipes[index]['recipe']['image'],
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
+                      onTap: () {
+                        // Handle recipe tap if needed
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

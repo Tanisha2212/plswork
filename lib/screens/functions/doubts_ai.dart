@@ -5,6 +5,18 @@ class DoubtsAi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return  Scaffold(
+      appBar: AppBar(
+        backgroundColor:Colors.green,
+     
+      title: const Text(
+        'FoodAI',
+      style:TextStyle(
+          color:Colors.white
+        )
+      )
+ ),
+ 
+    );
   }
 }

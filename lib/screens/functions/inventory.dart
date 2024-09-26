@@ -2,16 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+// ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 
 class Inventory extends StatefulWidget {
   @override
   _InventoryState createState() => _InventoryState();
-
-  // Add a static method to get the inventory items
-  static List<Map<String, String>> getInventoryItems() {
-    return _InventoryState.inventoryList;
-  }
 }
 
 class _InventoryState extends State<Inventory> {
@@ -23,7 +19,7 @@ class _InventoryState extends State<Inventory> {
   final TextEditingController _manualExpiryController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
 
-  static List<Map<String, String>> inventoryList = [];
+  List<Map<String, String>> _inventoryList = [];
 
   final ImagePicker _picker = ImagePicker();
 
@@ -83,6 +79,7 @@ class _InventoryState extends State<Inventory> {
     return null;
   }
 
+  // Parse multiple date formats
   DateTime? _parseDate(String dateStr) {
     List<String> formats = [
       'dd/MM/yyyy',
@@ -91,7 +88,7 @@ class _InventoryState extends State<Inventory> {
       'dd-MM-yyyy',
       'MM-yyyy',
       'yyyy-MM',
-      'MMMM yyyy'
+      'MMMM yyyy' // Format for month name (e.g., January 2023)
     ];
 
     for (String format in formats) {
@@ -105,6 +102,7 @@ class _InventoryState extends State<Inventory> {
     return null;
   }
 
+  // Prompt the user to enter the item name after expiry date detection
   Future<void> _promptItemName() async {
     await showDialog(
       context: context,
@@ -133,7 +131,7 @@ class _InventoryState extends State<Inventory> {
 
   void addManualItem() {
     setState(() {
-      inventoryList.add({
+      _inventoryList.add({
         "name": _itemNameController.text,
         "expiryDate": _manualExpiryController.text,
         "quantity": _quantityController.text,
@@ -147,7 +145,7 @@ class _InventoryState extends State<Inventory> {
   void addScannedItem() {
     setState(() {
       if (_expiryDate != null && _itemNameController.text.isNotEmpty) {
-        inventoryList.add({
+        _inventoryList.add({
           "name": _itemNameController.text,
           "expiryDate": _expiryDate!,
           "quantity": _quantityController.text,
@@ -162,7 +160,7 @@ class _InventoryState extends State<Inventory> {
 
   void deleteItem(int index) {
     setState(() {
-      inventoryList.removeAt(index);
+      _inventoryList.removeAt(index);
     });
   }
 
@@ -179,13 +177,11 @@ class _InventoryState extends State<Inventory> {
           children: [
             Text(
               'Add New Inventory Item',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal),
             ),
             SizedBox(height: 20),
 
+            // Manual Entry Form
             TextField(
               controller: _itemNameController,
               decoration: InputDecoration(
@@ -208,35 +204,114 @@ class _InventoryState extends State<Inventory> {
                 labelText: 'Quantity',
                 border: OutlineInputBorder(),
               ),
+              keyboardType: TextInputType.number,
             ),
             SizedBox(height: 10),
             ElevatedButton(
               onPressed: addManualItem,
-              child: Text('Add Item'),
+              child: Text(
+                'Add Item Manually',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.greenAccent,
+              ),
+            ),
+            SizedBox(height: 20),
+
+            // Image Section
+            if (_image != null)
+              Column(
+                children: [
+                  Image.file(
+                    _image!,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                  SizedBox(height: 10),
+                ],
+              ),
+            if (_isLoading) CircularProgressIndicator(),
+            if (_expiryDate != null && !_isLoading)
+              Column(
+                children: [
+                  Text(
+                    'Detected Expiry Date: $_expiryDate',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal),
+                  ),
+                  SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: addScannedItem,
+                    child: Text(
+                      'Add Scanned Item',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.greenAccent,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                ],
+              ),
+
+            // Scan Button
+            ElevatedButton(
+              onPressed: pickImage,
+              child: Text(
+                'Scan Product for Expiry Date',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+              ),
             ),
 
             SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: pickImage,
-              child: Text('Scan Expiry Date from Image'),
+
+            // Inventory List in Table Form
+            Text(
+              'Inventory List',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal),
             ),
             SizedBox(height: 10),
 
-            // Display the inventory list
             Expanded(
-              child: ListView.builder(
-                itemCount: inventoryList.length,
-                itemBuilder: (context, index) {
-                  final item = inventoryList[index];
-                  return ListTile(
-                    title: Text('${item['name']} (Qty: ${item['quantity']})'),
-                    subtitle: Text('Expiry Date: ${item['expiryDate']}'),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () => deleteItem(index),
-                    ),
-                  );
-                },
+              child: SingleChildScrollView(
+                child: _inventoryList.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No items in inventory.',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      )
+                    : DataTable(
+                        columns: [
+                          DataColumn(label: Text('Item Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Expiry Date', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Quantity', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                        ],
+                        rows: _inventoryList
+                            .asMap()
+                            .entries
+                            .map(
+                              (entry) => DataRow(
+                                cells: [
+                                  DataCell(Text(entry.value["name"] ?? "")),
+                                  DataCell(Text(entry.value["expiryDate"] ?? "")),
+                                  DataCell(Text(entry.value["quantity"] ?? "")),
+                                  DataCell(
+                                    IconButton(
+                                      icon: Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () => deleteItem(entry.key),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                            .toList(),
+                      ),
               ),
             ),
           ],
